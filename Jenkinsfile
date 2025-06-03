@@ -8,7 +8,7 @@ pipeline {
     }
     
     environment {
-        SERVICE = 'order'
+        SERVICE = 'product'
         NAME = "joaopgs4/${env.SERVICE}"
         REGISTRY_CREDENTIALS = 'dockerhub-credentials'
     }
