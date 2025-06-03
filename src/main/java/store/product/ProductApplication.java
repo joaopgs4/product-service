@@ -7,6 +7,8 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 
+import java.net.URI;
+
 @SpringBootApplication
 @EnableCaching
 public class ProductApplication {
@@ -17,8 +19,25 @@ public class ProductApplication {
     }
 
     private static void waitForRedis() {
-        String redisHost = System.getenv().getOrDefault("REDIS_HOST", "redis");
-        int redisPort = Integer.parseInt(System.getenv().getOrDefault("REDIS_PORT", "6379"));
+        String redisHostEnv = System.getenv().getOrDefault("REDIS_HOST", "redis");
+        String redisPortEnv = System.getenv().getOrDefault("REDIS_PORT", "6379");
+
+        String redisHost = redisHostEnv;
+        int redisPort;
+
+        // 🏗️ Check if REDIS_HOST contains full URL like tcp://10.106.80.73:6379
+        if (redisHostEnv.startsWith("tcp://")) {
+            try {
+                URI uri = new URI(redisHostEnv);
+                redisHost = uri.getHost();
+                redisPort = uri.getPort();
+            } catch (Exception e) {
+                throw new RuntimeException("Invalid REDIS_HOST URL format: " + redisHostEnv, e);
+            }
+        } else {
+            redisPort = Integer.parseInt(redisPortEnv);
+        }
+
         int retries = 30;
         int attempt = 0;
 
@@ -34,7 +53,7 @@ public class ProductApplication {
                     }
                 }
             } catch (Exception e) {
-                System.out.println("⏳ Waiting for Redis... attempt " + (attempt + 1));
+                System.out.println("⏳ Waiting for Redis... attempt " + (attempt + 1) + " — " + e.getMessage());
             } finally {
                 if (connectionFactory != null) {
                     connectionFactory.destroy();
