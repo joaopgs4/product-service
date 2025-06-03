@@ -21,26 +21,23 @@ public class ProductApplication {
     private static void waitForRedis() {
         String redisHostEnv = System.getenv().getOrDefault("REDIS_HOST", "redis");
         String redisPortEnv = System.getenv().getOrDefault("REDIS_PORT", "6379");
-
+    
         String redisHost = redisHostEnv;
-        int redisPort;
-
-        // 🏗️ Check if REDIS_HOST contains full URL like tcp://10.106.80.73:6379
+        int redisPort = Integer.parseInt(redisPortEnv);
+    
         if (redisHostEnv.startsWith("tcp://")) {
             try {
                 URI uri = new URI(redisHostEnv);
                 redisHost = uri.getHost();
-                redisPort = uri.getPort();
+                redisPort = uri.getPort() != -1 ? uri.getPort() : redisPort;
             } catch (Exception e) {
                 throw new RuntimeException("Invalid REDIS_HOST URL format: " + redisHostEnv, e);
             }
-        } else {
-            redisPort = Integer.parseInt(redisPortEnv);
         }
-
+    
         int retries = 30;
         int attempt = 0;
-
+    
         while (attempt < retries) {
             LettuceConnectionFactory connectionFactory = null;
             try {
@@ -67,6 +64,6 @@ public class ProductApplication {
                 throw new RuntimeException("Interrupted while waiting for Redis", ie);
             }
         }
-        throw new RuntimeException("❌ Cannot connect to Redis at " + redisHost + ":" + redisPort + " after 30 seconds");
+        throw new RuntimeException("❌ Cannot connect to Redis at " + redisHost + ":" + redisPort + " after 30 attempts");
     }
 }
